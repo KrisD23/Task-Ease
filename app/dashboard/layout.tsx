@@ -1,8 +1,11 @@
 import { ReactNode } from "react";
-import DashboardNav from "../components/DashboardNav";
+
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "../lib/db";
+import { stripe } from "../lib/stripe";
+import { unstable_noStore as noStore } from "next/cache";
+import DashboardNav from "../components/DashboardNav";
 
 async function getData({
   email,
@@ -17,6 +20,7 @@ async function getData({
   lastName: string | undefined | null;
   profileImage: string | undefined | null;
 }) {
+  noStore();
   const user = await prisma.user.findUnique({
     where: {
       id: id,
@@ -37,15 +41,33 @@ async function getData({
       },
     });
   }
+
+  if (!user?.stripeCustomerId) {
+    const data = await stripe.customers.create({
+      email: email,
+    });
+
+    await prisma.user.update({
+      where: {
+        id: id,
+      },
+      data: {
+        stripeCustomerId: data.id,
+      },
+    });
+  }
 }
 
-const DashboardLayout = async ({ children }: { children: ReactNode }) => {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
   if (!user) {
     return redirect("/");
   }
-
   await getData({
     email: user.email as string,
     firstName: user.given_name as string,
@@ -64,6 +86,4 @@ const DashboardLayout = async ({ children }: { children: ReactNode }) => {
       </div>
     </div>
   );
-};
-
-export default DashboardLayout;
+}
