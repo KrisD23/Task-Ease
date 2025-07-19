@@ -9,20 +9,14 @@ import {
 import { CheckCircle2 } from "lucide-react";
 import prisma from "@/app/lib/db";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { getStripeSession, stripe } from "@/app/lib/stripe";
-import { redirect } from "next/navigation";
-import {
-  StripePortal,
-  StripeSubscriptionCreationButton,
-} from "@/app/components/Submitbuttons";
 import { unstable_noStore as noStore } from "next/cache";
 
 const featureItems = [
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
-  { name: "Lorem Ipsum something" },
+  { name: "Unlimited Note Creation" },
+  { name: "Rich Text Editing" },
+  { name: "Search and Organization" },
+  { name: "Export Capabilities" },
+  { name: "Cross-Device Sync" },
 ];
 
 async function getData(userId: string) {
@@ -33,11 +27,6 @@ async function getData(userId: string) {
     },
     select: {
       status: true,
-      user: {
-        select: {
-          stripeCustomerId: true,
-        },
-      },
     },
   });
 
@@ -49,47 +38,6 @@ export default async function BillingPage() {
   const user = await getUser();
   const data = await getData(user?.id as string);
 
-  async function createSubscription() {
-    "use server";
-
-    const dbUser = await prisma.user.findUnique({
-      where: {
-        id: user?.id,
-      },
-      select: {
-        stripeCustomerId: true,
-      },
-    });
-
-    if (!dbUser?.stripeCustomerId) {
-      throw new Error("Unable to get customer id");
-    }
-
-    const subscriptionUrl = await getStripeSession({
-      customerId: dbUser.stripeCustomerId,
-      domainUrl:
-        process.env.NODE_ENV == "production"
-          ? (process.env.PRODUCTION_URL as string)
-          : "http://localhost:3000",
-      priceId: process.env.STRIPE_PRICE_ID as string,
-    });
-
-    return redirect(subscriptionUrl);
-  }
-
-  async function createCustomerPortal() {
-    "use server";
-    const session = await stripe.billingPortal.sessions.create({
-      customer: data?.user.stripeCustomerId as string,
-      return_url:
-        process.env.NODE_ENV === "production"
-          ? (process.env.PRODUCTION_URL as string)
-          : "http://localhost:3000/dashboard",
-    });
-
-    return redirect(session.url);
-  }
-
   if (data?.status === "active") {
     return (
       <div className="grid items-start gap-8">
@@ -97,24 +45,24 @@ export default async function BillingPage() {
           <div className="grid gap-1">
             <h1 className="text-3xl md:text-4xl ">Subscription</h1>
             <p className="text-lg text-muted-foreground">
-              Settings reagding your subscription
+              Settings regarding your subscription
             </p>
           </div>
         </div>
 
         <Card className="w-full lg:w-2/3">
           <CardHeader>
-            <CardTitle>Edit Subscription</CardTitle>
+            <CardTitle>Active Subscription</CardTitle>
             <CardDescription>
-              Click on the button below, this will give you the opportunity to
-              change your payment details and view your statement at the same
-              time.
+              Your subscription is currently active. Payment integration coming
+              soon.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={createCustomerPortal}>
-              <StripePortal />
-            </form>
+            <p className="text-muted-foreground">
+              Payment management features will be available once payment
+              integration is implemented.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -151,9 +99,9 @@ export default async function BillingPage() {
             ))}
           </ul>
 
-          <form className="w-full" action={createSubscription}>
-            <StripeSubscriptionCreationButton />
-          </form>
+          <Button className="w-full" disabled>
+            Payment Integration Coming Soon
+          </Button>
         </div>
       </Card>
     </div>

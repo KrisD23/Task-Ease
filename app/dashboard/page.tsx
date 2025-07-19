@@ -54,7 +54,7 @@ export default async function DashboardPage() {
       },
     });
 
-    revalidatePath("/dasboard");
+    revalidatePath("/dashboard");
   }
   return (
     <div className="grid items-start gap-y-8">
